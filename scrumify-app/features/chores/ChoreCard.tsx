@@ -1,0 +1,44 @@
+// Displays a chore's details and whether it is overdue, active, or completed
+import type { Chore } from "./types";
+import { getChoreState } from "./getChoreState";
+
+// Convert the status from DJANGO into the text shown on the page
+const statusLabels = {
+  todo: "To Do",
+  in_progress: "In Progress",
+  done: "Done",
+};
+
+type ChoreCardProps = {
+  chore: Chore;
+  onEdit: () => void;
+  saving: boolean;
+  today: string;
+};
+
+export default function ChoreCard({ chore, onEdit, saving, today }: ChoreCardProps) {
+  // The chore is passed in by ChoresView This component only displays its data
+  return (
+    <li className="rounded border p-4">
+      <h2 className="break-words text-lg font-medium">{chore.description}</h2>
+      {today && <p>State: {getChoreState(chore, today)}</p>}
+      <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+        <div>
+          <dt className="font-semibold">Due date</dt>
+          <dd><time dateTime={chore.due_date}>{chore.due_date}</time></dd>
+        </div>
+        <div>
+          <dt className="font-semibold">Status</dt>
+          <dd>{statusLabels[chore.status]}</dd>
+        </div>
+        <div>
+          <dt className="font-semibold">Points</dt>
+          <dd>{chore.points}</dd>
+        </div>
+      </dl>
+      <button className="mt-2 rounded border px-3 py-1" type="button" onClick={onEdit} disabled={saving}>
+        Edit
+      </button>
+    </li>
+  );
+}
