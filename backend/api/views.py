@@ -15,15 +15,14 @@ def chore_list(request):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
-    chores = Chore.objects.all().order_by("id")
     serializer = ChoreSerializer(chores, many=True)
     return Response({"chores": serializer.data})
 
 
-@api_view(["GET", "PUT", "DELETE"])
+@api_view(["GET", "PUT", "PATCH", "DELETE"])
 def chore_detail(request, chore_id):
-    # Look for the chore among the signed-in user's chores only, so another
-    # account's chore is treated the same as a chore that doesn't exist
+    # Look for the chore among the signed-in user's chores only
+    # Treat another account's chore the same as a chore that doesn't exist
     try:
         chore = Chore.objects.get(id=chore_id, owner=request.user)
     except Chore.DoesNotExist:
@@ -37,8 +36,8 @@ def chore_detail(request, chore_id):
         chore.delete()
         return Response(status=204)
 
-    # PUT: update the existing chore with the new values
-    serializer = ChoreSerializer(chore, data=request.data)
+    # PATCH changes only the supplied fields, so completing a chore preserves its other details
+    serializer = ChoreSerializer(chore, data=request.data, partial=request.method == "PATCH")
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
