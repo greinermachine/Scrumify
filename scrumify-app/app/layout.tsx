@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Scrumify",
-  description: "House chores.",
+  description: "Lifestyle management.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
