@@ -173,11 +173,20 @@ class ChoreApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_create_chore_belongs_to_signed_in_user(self):
+        new_values = {"description": "Water plants", "due_date": "2026-10-26"}
+        response = self.client.post("/api/chores/", new_values, format="json")
+        self.assertEqual(response.status_code, 201)
+        saved = Chore.objects.get(id=response.json()["id"])
+        self.assertEqual(saved.owner, self.alice)
 
-class ChoreDeleteTests(TestCase):
+
+class ChoreDeleteTests(APITestCase):
     def setUp(self):
+        self.user = User.objects.create_user(username="alice", password="alice-password")
+        self.client.force_authenticate(user=self.user)
         self.chore = Chore.objects.create(
-            description="Wash dishes", due_date=datetime.date(2026, 10, 21)
+            description="Wash dishes", due_date=datetime.date(2026, 10, 21), owner=self.user
         )
         self.delete_url = reverse("chore-delete", args=[self.chore.pk])
 
@@ -188,6 +197,7 @@ class ChoreDeleteTests(TestCase):
                 "id": self.chore.pk,
                 "description": self.chore.description,
                 "due_date": "2026-10-21",
+                "due_time": "12:00:00",
                 "status": "todo",
                 "points": 0,
             }
@@ -200,7 +210,7 @@ class ChoreDeleteTests(TestCase):
 
     def test_delete_updates_list_and_preserves_other_chores(self):
         other = Chore.objects.create(
-            description="Vacuum", due_date=datetime.date(2026, 10, 22)
+            description="Vacuum", due_date=datetime.date(2026, 10, 22), owner=self.user
         )
         response = self.client.delete(self.delete_url)
         self.assertEqual(response.status_code, 204)
@@ -210,6 +220,7 @@ class ChoreDeleteTests(TestCase):
                 "id": other.pk,
                 "description": other.description,
                 "due_date": "2026-10-22",
+                "due_time": "12:00:00",
                 "status": "todo",
                 "points": 0,
             }

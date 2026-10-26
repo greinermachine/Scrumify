@@ -11,7 +11,8 @@ def chore_list(request):
     if request.method == "POST":
         serializer = ChoreSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # The new chore belongs to the signed-in user
+            serializer.save(owner=request.user)
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
