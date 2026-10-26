@@ -3,6 +3,7 @@ export type Chore = {
   id: number;
   description: string;
   due_date: string;
+  due_time?: string;
   status: "todo" | "in_progress" | "done";
   points: number;
 };
