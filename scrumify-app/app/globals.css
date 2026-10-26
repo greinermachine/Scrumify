@@ -1,26 +1,286 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --ink: #231f1b;
+  --muted: #726b61;
+  --paper: #f4f0e7;
+  --wall: #e3ddd2;
+  --line: #ddd4c6;
+  --card: #fffcf7;
+  --stamp: #9d3d2c;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  color: var(--ink);
+  background: var(--wall);
+  font: 15px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 36px 16px 72px;
+}
+
+.sheet {
+  max-width: 980px;
+  margin: 0 auto;
+  background: var(--paper);
+  border: 1px solid #d5cec2;
+  padding: 22px 22px 26px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.top h1,
+.sheet > h1 {
+  margin: 0;
+  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.top p,
+.sheet > p,
+.score {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.score {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.tools button,
+.signin button,
+.editor button,
+.chore button {
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tools button:hover,
+.remove:hover,
+.editor button:hover {
+  color: var(--stamp);
+}
+
+.tools button:disabled,
+.chore button:disabled,
+.editor button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.note {
+  margin: 14px 0 0;
+  padding: 8px 10px;
+  background: #f6e4da;
+  border: 1px solid #e4c4b4;
+  color: #6e3829;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.col {
+  background: #ebe4d8;
+  min-height: 160px;
+  padding: 10px;
+}
+
+.col h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 2px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #b5522a;
+}
+
+.dot.in_progress {
+  background: #b5892a;
+}
+
+.dot.done {
+  background: #3e6b4a;
+}
+
+.count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chore {
+  background: var(--card);
+  border: 1px solid #e5dccf;
+  padding: 10px 10px 8px;
+  margin-bottom: 8px;
+}
+
+.chore h2,
+.editor legend {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.meta,
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.late {
+  color: var(--stamp);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.empty {
+  margin: 4px;
+}
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+
+.signin,
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signin {
+  max-width: 420px;
+  margin-top: 16px;
+}
+
+.editor {
+  gap: 8px;
+}
+
+.signin label,
+.editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.signin input,
+.editor input,
+.editor select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid #cfc6b8;
+  border-radius: 2px;
+  padding: 7px 8px;
+}
+
+.signin button,
+.editor button {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  padding: 7px 14px;
+}
+
+.editor .cancel {
+  background: none;
+  color: var(--muted);
+  border-color: transparent;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 12px 10px 40px;
+  }
+
+  .sheet {
+    padding: 16px 12px 18px;
+  }
+
+  .top h1,
+  .sheet > h1 {
+    font-size: 28px;
+  }
+
+  .board {
+    grid-template-columns: 1fr;
+  }
 }

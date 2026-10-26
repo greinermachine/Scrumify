@@ -26,36 +26,36 @@ export default function ChoreEditor({ chore, saving, onSave, onCancel }: ChoreEd
   }
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={submit}>
-      <fieldset disabled={saving} className="flex flex-col gap-2">
+    <form className="editor" onSubmit={submit}>
+      <fieldset disabled={saving} className="editor">
         <legend>Edit chore</legend>
         <label>
           Description
-          <input className="ml-2 border px-1" required value={form.description}
+          <input required value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })} />
         </label>
         <label>
           Due date
-          <input className="ml-2 border px-1" type="date" required value={form.due_date}
+          <input type="date" required value={form.due_date}
             onChange={(event) => setForm({ ...form, due_date: event.target.value })} />
         </label>
         <label>
           Status
-          <select className="ml-2 border px-1" value={form.status}
+          <select value={form.status}
             onChange={(event) => setForm({ ...form, status: event.target.value as Chore["status"] })}>
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
+            <option value="todo">To do</option>
+            <option value="in_progress">In progress</option>
             <option value="done">Done</option>
           </select>
         </label>
         <label>
           Points
-          <input className="ml-2 border px-1" type="number" required value={form.points}
+          <input type="number" required value={form.points}
             onChange={(event) => setForm({ ...form, points: Number(event.target.value) })} />
         </label>
-        <div className="flex gap-2">
-          <button className="rounded border px-3 py-1" type="submit">{saving ? "Saving..." : "Save"}</button>
-          <button className="rounded border px-3 py-1" type="button" onClick={onCancel}>Cancel</button>
+        <div className="row">
+          <button type="submit">{saving ? "Saving" : "Save"}</button>
+          <button className="cancel" type="button" onClick={onCancel}>Cancel</button>
         </div>
       </fieldset>
     </form>

@@ -2,12 +2,7 @@
 import type { Chore } from "./types";
 import { getChoreState } from "./getChoreState";
 
-// Convert the status from DJANGO into the text shown on the page
-const statusLabels = {
-  todo: "To Do",
-  in_progress: "In Progress",
-  done: "Done",
-};
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type ChoreCardProps = {
   chore: Chore;
@@ -18,39 +13,41 @@ type ChoreCardProps = {
   onComplete: (choreId: number) => Promise<void>;
 };
 
+function formatDue(iso: string, today: string) {
+  const [year, month, day] = iso.split("-");
+  const label = `${MONTHS[Number(month) - 1]} ${Number(day)}`;
+  if (today && year !== today.slice(0, 4)) return `${label}, ${year}`;
+  return label;
+}
+
 export default function ChoreCard({ chore, onEdit, saving, today, completingId, onComplete }: ChoreCardProps) {
-  // The chore is passed in by ChoresView This component only displays its data
+  const overdue = getChoreState(chore, today) === "Overdue";
+
   return (
-    <li className="rounded border p-4">
-      <h2 className="break-words text-lg font-medium">{chore.description}</h2>
-      {today && <p>State: {getChoreState(chore, today)}</p>}
-      {chore.status !== "done" && (
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => void onComplete(chore.id)}
-          aria-label={`Mark ${chore.description} complete`}
-        >
-          {completingId === chore.id ? "Saving..." : "Mark complete"}
+    <li className="chore">
+      <h2>{chore.description}</h2>
+      <p className="meta">
+        <span className={overdue ? "late" : undefined}>
+          {overdue ? "Late, " : ""}
+          {formatDue(chore.due_date, today)}
+        </span>
+        <span>{chore.points} pts</span>
+      </p>
+      <div className="actions">
+        {chore.status !== "done" ? (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void onComplete(chore.id)}
+            aria-label={`Mark ${chore.description} complete`}
+          >
+            {completingId === chore.id ? "Saving" : "Mark complete"}
+          </button>
+        ) : <span />}
+        <button className="remove" type="button" onClick={onEdit} disabled={saving}>
+          Edit
         </button>
-      )}
-      <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="font-semibold">Due date</dt>
-          <dd><time dateTime={chore.due_date}>{chore.due_date}</time></dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Status</dt>
-          <dd>{statusLabels[chore.status]}</dd>
-        </div>
-        <div>
-          <dt className="font-semibold">Points</dt>
-          <dd>{chore.points}</dd>
-        </div>
-      </dl>
-      <button className="mt-2 rounded border px-3 py-1" type="button" onClick={onEdit} disabled={saving}>
-        Edit
-      </button>
+      </div>
     </li>
   );
 }

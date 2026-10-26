@@ -37,37 +37,36 @@ export default function SignInForm({ onSignIn }: { onSignIn: (token: string) => 
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl p-8">
-      <h1 className="mb-6 text-3xl font-bold">Sign in</h1>
-      {error && <p role="alert">{error}</p>}
-      <form onSubmit={logIn} className="flex flex-col gap-2">
-        <label>
-          Username
-          <input
-            className="ml-2 border px-1"
-            autoComplete="username"
-            required
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            className="ml-2 border px-1"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-        <div>
-          <button className="rounded border px-3 py-1" type="submit" disabled={signingIn}>
-            {signingIn ? "Signing in..." : "Sign in"}
+    <div className="page">
+      <main className="sheet">
+        <h1>Scrumify</h1>
+        <p>House chores</p>
+        {error && <p className="note" role="alert">{error}</p>}
+        <form onSubmit={logIn} className="signin">
+          <label>
+            Username
+            <input
+              autoComplete="username"
+              required
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+          </label>
+          <button type="submit" disabled={signingIn}>
+            {signingIn ? "Signing in" : "Sign in"}
           </button>
-        </div>
-      </form>
-    </main>
+        </form>
+      </main>
+    </div>
   );
 }

@@ -8,11 +8,17 @@ import { useState } from "react";
 import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
 import { useToday } from "./useToday";
-import type { ChoreForm } from "./types";
+import type { Chore, ChoreForm } from "./types";
+
+const COLUMNS: { key: Chore["status"]; label: string }[] = [
+  { key: "todo", label: "To do" },
+  { key: "in_progress", label: "In progress" },
+  { key: "done", label: "Done" },
+];
 
 export default function ChoresView() {
   const { token, signIn, signOut } = useAuth();
-  if (token === null) return <p>Checking saved login...</p>;
+  if (token === null) return <p className="page">Checking saved login...</p>;
   if (!token) return <SignInForm onSignIn={signIn} />;
 
   // A different token creates a fresh list, clearing the previous account's chores and edits
@@ -24,6 +30,9 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   const { chores, loading, error, refreshChores, saveChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const [editingId, setEditingId] = useState<number | null>(null);
   const today = useToday();
+  const earned = chores
+    .filter((chore) => chore.status === "done")
+    .reduce((sum, chore) => sum + chore.points, 0);
 
   // filters out the completed chores, and sorts them by date chronologically
   const incompleteChores = chores
@@ -34,8 +43,6 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
     if (await saveChore(choreId, form)) setEditingId(null);
   }
 
-  // This is JSX: HTML-like tags with JavaScript expressions inside {braces}
-  // The className attribute is React's spelling of HTML's class attribute, these classes add styling
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 p-4 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
