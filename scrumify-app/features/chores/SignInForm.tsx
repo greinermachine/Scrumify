@@ -38,9 +38,9 @@ export default function SignInForm({ onSignIn }: { onSignIn: (token: string) => 
 
   return (
     <div className="page">
-      <main className="sheet">
+      <main className="sheet signin-box">
         <h1>Scrumify</h1>
-        <p>House chores</p>
+        <p>Lifestyle management</p>
         {error && <p className="note" role="alert">{error}</p>}
         <form onSubmit={logIn} className="signin">
           <label>
