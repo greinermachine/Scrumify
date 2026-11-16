@@ -82,7 +82,7 @@ export function useChores(token: string, onUnauthorized: () => void) {
     setRefreshVersion((current) => current + 1);
   }
 
-  async function updateChore(choreId: number, changes: ChoreForm | Pick<Chore, "status">, method: "PUT" | "PATCH") {
+  async function changeChore(choreId: number | null, changes: ChoreForm | Pick<Chore, "status"> | null, method: "POST" | "PUT" | "PATCH" | "DELETE") {
     // Block repeated saves immediately, without waiting for the next render
     if (savePending.current) return false;
     savePending.current = true;
@@ -92,24 +92,29 @@ export function useChores(token: string, onUnauthorized: () => void) {
     const requestController = new AbortController();
     saveController.current = requestController;
     try {
-      const response = await fetch(`/api/chores/${choreId}/`, {
+      const response = await fetch(choreId === null ? "/api/chores/" : `/api/chores/${choreId}/`, {
         method,
         headers: { "Content-Type": "application/json", Authorization: `Token ${token}` },
-        body: JSON.stringify(changes),
+        body: changes ? JSON.stringify(changes) : undefined,
         signal: requestController.signal,
       });
       // Signing out cancels this request so its response cannot affect a later login
       if (requestController.signal.aborted) return false;
       if (response.status === 401) { onUnauthorized(); return false; }
       if (!response.ok) throw new Error();
-      const savedChore: Chore = await response.json();
-      // Replace this chore with the saved server response, preserving the rest of the list
-      setChores((current) => current.map((chore) => chore.id === savedChore.id ? savedChore : chore));
+      if (method === "DELETE") {
+        setChores((current) => current.filter((chore) => chore.id !== choreId));
+      } else {
+        const savedChore: Chore = await response.json();
+        setChores((current) => method === "POST"
+          ? [...current, savedChore]
+          : current.map((chore) => chore.id === savedChore.id ? savedChore : chore));
+      }
       return true;
     } catch {
       if (!requestController.signal.aborted) {
-        setSaveError(method === "PATCH"
-          ? "Could not mark this chore complete. Try again."
+        setSaveError(method === "DELETE" ? "Could not delete the chore. Try again."
+          : method === "PATCH" ? "Could not mark this chore complete. Try again."
           : "Could not save the chore. Check the fields and try again.");
       }
       return false;
@@ -121,15 +126,18 @@ export function useChores(token: string, onUnauthorized: () => void) {
   }
 
   function saveChore(choreId: number, form: ChoreForm) {
-    return updateChore(choreId, form, "PUT");
+    return changeChore(choreId, form, "PUT");
   }
+
+  function addChore(form: ChoreForm) { return changeChore(null, form, "POST"); }
+  function deleteChore(choreId: number) { return changeChore(choreId, null, "DELETE"); }
 
   async function completeChore(choreId: number) {
     if (savePending.current) return;
     setCompletingId(choreId);
     try {
       // PATCH sends only the new status, preserving the description, deadline, and points
-      await updateChore(choreId, { status: "done" }, "PATCH");
+      await changeChore(choreId, { status: "done" }, "PATCH");
     } finally {
       setCompletingId(null);
     }
@@ -137,5 +145,5 @@ export function useChores(token: string, onUnauthorized: () => void) {
 
   function clearSaveError() { setSaveError(""); }
 
-  return { chores, loading, error, refreshChores, saveChore, completeChore, completingId, saving, saveError, clearSaveError };
+  return { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError };
 }

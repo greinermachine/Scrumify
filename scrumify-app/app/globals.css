@@ -81,6 +81,32 @@ button:disabled {
   padding: 0 16px;
 }
 
+.dashboard-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.dashboard-heading h2 { margin: 0; color: var(--blue); }
+
+.add-btn {
+  background: var(--blue);
+  color: white;
+  border: 0;
+  border-radius: 4px;
+  padding: 7px 16px;
+}
+
+.chore-form {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
 .note {
   padding: 8px 10px;
   background: var(--orange-light);
@@ -237,7 +263,11 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   margin-top: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
+
+.chore-controls { display: flex; gap: 6px; }
 
 .complete-btn {
   background: var(--orange);
@@ -262,6 +292,16 @@ button:disabled {
 .edit-btn:hover {
   background: var(--blue-light);
 }
+
+.delete-btn {
+  background: none;
+  border: 1px solid #a12b1e;
+  color: #a12b1e;
+  border-radius: 4px;
+  padding: 3px 10px;
+}
+
+.delete-btn:hover { background: var(--orange-light); }
 
 /* Forms (sign in and edit) */
 fieldset {

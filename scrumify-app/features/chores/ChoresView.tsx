@@ -27,8 +27,9 @@ export default function ChoresView() {
 
 function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   // The useChores hook handles the data and requests, this component handles the visible part
-  const { chores, loading, error, refreshChores, saveChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
+  const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
   const today = useToday();
   const earned = chores
     .filter((chore) => chore.status === "done")
@@ -61,12 +62,26 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
       </header>
 
       <main className="sheet">
+        <div className="dashboard-heading">
+          <h2>Chores</h2>
+          <button type="button" className="add-btn" disabled={saving || adding}
+            onClick={() => { setAdding(true); setEditingId(null); clearSaveError(); }}>
+            Add chore
+          </button>
+        </div>
+        {adding && (
+          <div className="chore-form">
+            <ChoreEditor saving={saving}
+              onSave={async (form) => { if (await addChore(form)) setAdding(false); }}
+              onCancel={() => { setAdding(false); clearSaveError(); }} />
+          </div>
+        )}
         {/* The && operator displays the message only when the condition before it is true */}
         {loading && <p>Loading chores...</p>}
         {error && <p className="note" role="alert">{error}</p>}
         {saveError && <p className="note" role="alert">{saveError}</p>}
 
-        {!loading && !error && chores.length === 0 && <p>No chores saved yet.</p>}
+        {!loading && !error && chores.length === 0 && <p>No chores saved yet. Add one to get started.</p>}
 
         {!loading && !error && chores.length > 0 && (
           <>
@@ -119,7 +134,10 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
                         ) : (
                           <ChoreCard key={chore.id} chore={chore} saving={saving}
                             today={today} completingId={completingId} onComplete={completeChore}
-                            onEdit={() => { setEditingId(chore.id); clearSaveError(); }} />
+                            onEdit={() => { setAdding(false); setEditingId(chore.id); clearSaveError(); }}
+                            onDelete={() => {
+                              if (window.confirm(`Delete "${chore.description}"?`)) void deleteChore(chore.id);
+                            }} />
                         )
                       ))}
                     </ul>
