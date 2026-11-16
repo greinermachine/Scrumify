@@ -254,7 +254,7 @@ class FreezeApiTests(APITestCase):
     def test_no_freeze_by_default(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"freeze": None})
+        self.assertEqual(response.json(), {"freeze": None, "freezes": []})
 
     def test_start_freeze(self):
         self.make_chore("Vacuum", datetime.date(2026, 11, 20))
@@ -262,7 +262,10 @@ class FreezeApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         expected = {"start_date": "2026-11-16", "end_date": "2026-11-22", "days": 7, "shifted_count": 1}
         self.assertEqual(response.json(), expected)
-        self.assertEqual(self.client.get(self.url).json(), {"freeze": expected})
+        self.assertEqual(
+            self.client.get(self.url).json(),
+            {"freeze": expected, "freezes": [{"start_date": "2026-11-16", "end_date": "2026-11-22"}]},
+        )
 
     def test_start_pushes_unfinished_due_dates_back(self):
         during = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
@@ -312,13 +315,21 @@ class FreezeApiTests(APITestCase):
         self.assertEqual(Freeze.objects.get(owner=self.alice).end_date, datetime.date(2026, 11, 22))
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 27))
 
-    def test_expired_freeze_is_replaced_and_keeps_its_shift(self):
+    def test_expired_freeze_is_kept_as_history_and_keeps_its_shift(self):
         chore = self.make_chore("Vacuum", datetime.date(2026, 11, 3))
         self.start(start="2026-11-01", end="2026-11-02")
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 5))
         response = self.start(start="2026-11-16", end="2026-11-17")
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(Freeze.objects.filter(owner=self.alice).count(), 1)
+        body = self.client.get(self.url).json()
+        self.assertEqual(body["freeze"]["start_date"], "2026-11-16")
+        self.assertEqual(
+            body["freezes"],
+            [
+                {"start_date": "2026-11-01", "end_date": "2026-11-02"},
+                {"start_date": "2026-11-16", "end_date": "2026-11-17"},
+            ],
+        )
         # Already late by the second freeze, so only the first freeze moved it
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 5))
 
@@ -328,20 +339,30 @@ class FreezeApiTests(APITestCase):
         # Ending on Nov 19 means Nov 16, 17, and 18 were used
         response = self.client.post(self.end_url, {"today": "2026-11-19"}, format="json")
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(Freeze.objects.filter(owner=self.alice).exists())
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 23))
+        # The used days stay on record, so the freeze now ends Nov 18
+        self.assertEqual(Freeze.objects.get(owner=self.alice).end_date, datetime.date(2026, 11, 18))
 
     def test_end_on_start_day_undoes_the_freeze(self):
         chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
         self.start()
         self.client.post(self.end_url, {"today": "2026-11-16"}, format="json")
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 20))
+        self.assertFalse(Freeze.objects.filter(owner=self.alice).exists())
 
     def test_end_after_freeze_finished_keeps_full_shift(self):
         chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
         self.start()
         self.client.post(self.end_url, {"today": "2026-11-30"}, format="json")
         self.assertEqual(self.due(chore), datetime.date(2026, 11, 27))
+        self.assertEqual(Freeze.objects.get(owner=self.alice).end_date, datetime.date(2026, 11, 22))
+
+    def test_can_start_again_after_ending_early(self):
+        self.start()
+        self.client.post(self.end_url, {"today": "2026-11-18"}, format="json")
+        response = self.start(start="2026-11-18", end="2026-11-20")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Freeze.objects.filter(owner=self.alice).count(), 2)
 
     def test_end_early_skips_chores_added_or_rescheduled_during_freeze(self):
         moved = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
@@ -368,7 +389,7 @@ class FreezeApiTests(APITestCase):
             owner=self.bob, start_date=datetime.date(2026, 11, 16), end_date=datetime.date(2026, 11, 22)
         )
         # Alice can't see Bob's freeze
-        self.assertEqual(self.client.get(self.url).json(), {"freeze": None})
+        self.assertEqual(self.client.get(self.url).json(), {"freeze": None, "freezes": []})
         # Alice ending her freeze doesn't end Bob's
         self.client.post(self.end_url, {"today": "2026-11-16"}, format="json")
         self.assertTrue(Freeze.objects.filter(owner=self.bob).exists())

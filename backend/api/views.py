@@ -58,13 +58,22 @@ def shift_due_dates(chores, days):
         chore.save(update_fields=["due_date"])
 
 
+def latest_freeze(user):
+    return Freeze.objects.filter(owner=user).order_by("start_date").last()
+
+
 @api_view(["GET", "POST"])
 def freeze(request):
-    # The signed-in user's freeze, or None if they have never started one
-    current = Freeze.objects.filter(owner=request.user).first()
+    # The signed-in user's latest freeze, or None if they have never started one
+    current = latest_freeze(request.user)
 
     if request.method == "GET":
-        return Response({"freeze": FreezeSerializer(current).data if current else None})
+        # Every freeze, oldest first, so missed chores due during any of them aren't penalized
+        history = Freeze.objects.filter(owner=request.user).order_by("start_date")
+        return Response({
+            "freeze": FreezeSerializer(current).data if current else None,
+            "freezes": [{"start_date": f.start_date, "end_date": f.end_date} for f in history],
+        })
 
     # POST starts a freeze
     serializer = FreezeSerializer(data=request.data)
@@ -74,9 +83,7 @@ def freeze(request):
         return Response({"error": "End your current freeze before starting a new one."}, status=400)
 
     with transaction.atomic():
-        # An expired freeze already ran its full length, so its shifted due dates stay as they are
-        if current:
-            current.delete()
+        # Earlier freezes are kept as history, and their shifted due dates stay as they are
         new_freeze = serializer.save(owner=request.user)
         # Push back every unfinished chore that is due during or after the freeze
         # Chores that were already late before the freeze stay where they are and show as paused
@@ -96,16 +103,21 @@ def end_freeze(request):
         return Response(serializer.errors, status=400)
     today = serializer.validated_data["today"]
 
-    current = Freeze.objects.filter(owner=request.user).first()
-    if current is None:
+    current = latest_freeze(request.user)
+    # Nothing to end if there is no freeze or it has already finished
+    if current is None or today > current.end_date:
         return Response(status=204)
 
     with transaction.atomic():
         # Tracking resumes today, so only the days before today were used
-        # Ending on the day it started undoes the freeze completely
-        used = min(max((today - current.start_date).days, 0), current.days)
+        used = max((today - current.start_date).days, 0)
         unused = current.days - used
-        if unused:
-            shift_due_dates(current.shifted_chores.all(), -unused)
-        current.delete()
+        shift_due_dates(current.shifted_chores.all(), -unused)
+        if used == 0:
+            # Ending on the day it started undoes the freeze completely
+            current.delete()
+        else:
+            # Keep the days that were used, so chores due then still aren't penalized
+            current.end_date = today - datetime.timedelta(days=1)
+            current.save(update_fields=["end_date"])
     return Response(status=204)

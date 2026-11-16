@@ -3,10 +3,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Freeze } from "./types";
+import type { Freeze, FreezeWindow } from "./types";
 
 export function useFreeze(token: string, onUnauthorized: () => void, onChoresChanged: () => void) {
   const [freeze, setFreeze] = useState<Freeze | null>(null);
+  // Every freeze, so chores missed during any of them aren't penalized
+  const [freezes, setFreezes] = useState<FreezeWindow[]>([]);
+  const [reloadVersion, setReloadVersion] = useState(0); // Loads the freeze again when changed
   const [freezeSaving, setFreezeSaving] = useState(false);
   const [freezeError, setFreezeError] = useState("");
 
@@ -24,6 +27,7 @@ export function useFreeze(token: string, onUnauthorized: () => void, onChoresCha
         if (!response.ok) throw new Error();
         const data = await response.json();
         setFreeze(data.freeze);
+        setFreezes(data.freezes);
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           setFreezeError("Could not check whether your routine is frozen.");
@@ -38,7 +42,7 @@ export function useFreeze(token: string, onUnauthorized: () => void, onChoresCha
       controller.abort();
       window.removeEventListener("focus", loadFreeze);
     };
-  }, [token, onUnauthorized]);
+  }, [token, onUnauthorized, reloadVersion]);
 
   async function send(url: string, body: object, ending: boolean) {
     setFreezeSaving(true);
@@ -52,6 +56,8 @@ export function useFreeze(token: string, onUnauthorized: () => void, onChoresCha
       if (response.status === 401) { onUnauthorized(); return false; }
       if (!response.ok) throw new Error();
       setFreeze(ending ? null : await response.json());
+      // Reload the freeze history too, since starting or ending changes it
+      setReloadVersion((current) => current + 1);
       onChoresChanged();
       return true;
     } catch {
@@ -73,5 +79,5 @@ export function useFreeze(token: string, onUnauthorized: () => void, onChoresCha
     return send("/api/freeze/end/", { today }, true);
   }
 
-  return { freeze, freezeSaving, freezeError, startFreeze, endFreeze };
+  return { freeze, freezes, freezeSaving, freezeError, startFreeze, endFreeze };
 }

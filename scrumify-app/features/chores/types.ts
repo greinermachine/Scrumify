@@ -18,3 +18,6 @@ export type Freeze = {
   days: number; // How many days due dates were pushed back
   shifted_count: number; // How many chores were pushed back
 };
+
+// The dates of one freeze, past or current
+export type FreezeWindow = Pick<Freeze, "start_date" | "end_date">;

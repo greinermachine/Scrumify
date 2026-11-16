@@ -10,6 +10,7 @@ import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
 import { useFreeze } from "./useFreeze";
 import { isFreezeActive } from "./freezeDates";
+import { getPoints, isPenalized } from "./points";
 import { useToday } from "./useToday";
 import type { Chore, ChoreForm } from "./types";
 
@@ -33,13 +34,10 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const { freeze, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
+  const { freeze, freezes, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
   const today = useToday();
   const frozen = isFreezeActive(freeze, today);
-  const earned = chores
-    .filter((chore) => chore.status === "done")
-    .reduce((sum, chore) => sum + chore.points, 0);
-
+  const points = getPoints(chores, today, frozen, freezes);
   // filters out the completed chores, and sorts them by date chronologically
   const incompleteChores = chores
     .filter((chore) => chore.status !== "done")
@@ -115,7 +113,14 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
               )}
             </section>
 
-            <p className="score">Points earned: {earned}</p>
+            <div className="score">
+              <p>Points: {points.total}</p>
+              <p className="score-detail">
+                Earned {points.earned}
+                {points.penalty > 0 && <> &middot; <span className="late">-{points.penalty} for {points.missed} missed {points.missed === 1 ? "chore" : "chores"}</span></>}
+                {frozen && <> &middot; <span className="paused-label">Missed chores don&apos;t cost points during the freeze</span></>}
+              </p>
+            </div>
 
             {/* One column per status, each chore goes in the column that matches its status */}
             <div className="board" aria-label="Current chores">
@@ -142,7 +147,8 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
                           </li>
                         ) : (
                           <ChoreCard key={chore.id} chore={chore} saving={saving}
-                            today={today} frozen={frozen} completingId={completingId} onComplete={completeChore}
+                            today={today} frozen={frozen}
+                            penalized={isPenalized(chore, today, frozen, freezes)} completingId={completingId} onComplete={completeChore}
                             onEdit={() => { setAdding(false); setEditingId(chore.id); clearSaveError(); }}
                             onDelete={() => {
                               if (window.confirm(`Delete "${chore.description}"?`)) void deleteChore(chore.id);

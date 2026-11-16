@@ -24,8 +24,9 @@ class Chore(models.Model):
 class Freeze(models.Model):
     # A user's routine freeze, while it is active late chores are paused instead of overdue
     # Starting a freeze pushes unfinished chores' due dates back by the length of the freeze
-    # Each user has at most one freeze, an expired one is replaced by the next
-    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="freeze")
+    # Past freezes are kept, so chores that were due during one are never penalized
+    # A user has at most one current freeze, the one with the latest start date
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="freezes")
     start_date = models.DateField()
     end_date = models.DateField()
     # The chores whose due dates this freeze pushed back, so ending early can move them forward again
