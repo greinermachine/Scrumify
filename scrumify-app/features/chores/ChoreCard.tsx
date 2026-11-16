@@ -24,7 +24,7 @@ export default function ChoreCard({ chore, onEdit, saving, today, completingId, 
   const overdue = getChoreState(chore, today) === "Overdue";
 
   return (
-    <li className="chore">
+    <li className={overdue ? "chore overdue" : "chore"}>
       <h2>{chore.description}</h2>
       <p className="meta">
         <span className={overdue ? "late" : undefined}>
@@ -36,6 +36,7 @@ export default function ChoreCard({ chore, onEdit, saving, today, completingId, 
       <div className="actions">
         {chore.status !== "done" ? (
           <button
+            className="complete-btn"
             type="button"
             disabled={saving}
             onClick={() => void onComplete(chore.id)}
@@ -44,7 +45,7 @@ export default function ChoreCard({ chore, onEdit, saving, today, completingId, 
             {completingId === chore.id ? "Saving" : "Mark complete"}
           </button>
         ) : <span />}
-        <button className="remove" type="button" onClick={onEdit} disabled={saving}>
+        <button className="edit-btn" type="button" onClick={onEdit} disabled={saving}>
           Edit
         </button>
       </div>

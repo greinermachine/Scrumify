@@ -1,148 +1,198 @@
 @import "tailwindcss";
 
+/* Gator colors: blue and orange */
 :root {
-  --ink: #231f1b;
-  --muted: #726b61;
-  --paper: #f4f0e7;
-  --wall: #e3ddd2;
-  --line: #ddd4c6;
-  --card: #fffcf7;
-  --stamp: #9d3d2c;
+  --blue: #0021a5;
+  --blue-light: #e6ebf8;
+  --orange: #fa4616;
+  --orange-light: #fff0ea;
+  --text: #1f2430;
+  --gray: #6b7280;
+  --line: #d6dbe6;
+  --bg: #f3f5f9;
 }
 
 body {
   margin: 0;
-  color: var(--ink);
-  background: var(--wall);
-  font: 15px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font: 15px/1.4 Arial, Helvetica, sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .page {
   min-height: 100vh;
-  padding: 36px 16px 72px;
+  padding-bottom: 40px;
+}
+
+/* Blue bar at the top of the page */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: var(--blue);
+  color: white;
+  border-bottom: 4px solid var(--orange);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.topbar p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.topbar-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.topbar-buttons button {
+  background: white;
+  color: var(--blue);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: bold;
+}
+
+.topbar-buttons button:hover {
+  background: var(--orange-light);
 }
 
 .sheet {
-  max-width: 980px;
-  margin: 0 auto;
-  background: var(--paper);
-  border: 1px solid #d5cec2;
-  padding: 22px 22px 26px;
-}
-
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.top h1,
-.sheet > h1 {
-  margin: 0;
-  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
-  font-size: 34px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.top p,
-.sheet > p,
-.score {
-  margin: 2px 0 0;
-  color: var(--muted);
-}
-
-.score {
-  margin: 0;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.tools {
-  display: flex;
-  gap: 14px;
-  margin-top: 12px;
-}
-
-.tools button,
-.signin button,
-.editor button,
-.chore button {
-  font: inherit;
-  color: var(--ink);
-  background: none;
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-}
-
-.tools button:hover,
-.remove:hover,
-.editor button:hover {
-  color: var(--stamp);
-}
-
-.tools button:disabled,
-.chore button:disabled,
-.editor button:disabled {
-  cursor: default;
-  opacity: 0.55;
+  max-width: 1000px;
+  margin: 20px auto 0;
+  padding: 0 16px;
 }
 
 .note {
-  margin: 14px 0 0;
   padding: 8px 10px;
-  background: #f6e4da;
-  border: 1px solid #e4c4b4;
-  color: #6e3829;
+  background: var(--orange-light);
+  border: 1px solid var(--orange);
+  border-radius: 4px;
 }
 
+.empty {
+  color: var(--gray);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Upcoming chores list */
+.upcoming {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.upcoming h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--blue);
+}
+
+.upcoming ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.upcoming li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+
+.upcoming-name {
+  font-weight: bold;
+  margin-right: auto;
+}
+
+.tag {
+  background: var(--blue-light);
+  color: var(--blue);
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.status {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--gray);
+  color: var(--gray);
+}
+
+.status.in_progress {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.score {
+  margin: 16px 0 0;
+  font-weight: bold;
+  color: var(--blue);
+}
+
+/* Board with a column for each status */
 .board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 10px;
 }
 
 .col {
-  background: #ebe4d8;
-  min-height: 160px;
+  background: #e9edf5;
+  border-radius: 6px;
+  border-top: 4px solid var(--blue);
   padding: 10px;
+  min-height: 150px;
+}
+
+.col.in_progress {
+  border-top-color: var(--orange);
+}
+
+.col.done {
+  border-top-color: #2e7d32;
 }
 
 .col h2 {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 2px 2px 10px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  font-size: 14px;
   text-transform: uppercase;
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #b5522a;
-}
-
-.dot.in_progress {
-  background: #b5892a;
-}
-
-.dot.done {
-  background: #3e6b4a;
-}
-
 .count {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
+  background: white;
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
 .col ul {
@@ -151,49 +201,69 @@ body {
   padding: 0;
 }
 
+/* One chore card */
 .chore {
-  background: var(--card);
-  border: 1px solid #e5dccf;
-  padding: 10px 10px 8px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
   margin-bottom: 8px;
 }
 
-.chore h2,
-.editor legend {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+.chore.overdue {
+  border-left: 4px solid var(--orange);
 }
 
-.meta,
-.empty {
-  color: var(--muted);
-  font-size: 13px;
+.chore h2 {
+  margin: 0;
+  font-size: 15px;
 }
 
 .meta {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
   margin: 4px 0 0;
+  color: var(--gray);
+  font-size: 13px;
 }
 
 .late {
-  color: var(--stamp);
+  color: var(--orange);
+  font-weight: bold;
 }
 
 .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
   margin-top: 8px;
 }
 
-.empty {
-  margin: 4px;
+.complete-btn {
+  background: var(--orange);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
 }
 
+.complete-btn:hover {
+  background: #d93a10;
+}
+
+.edit-btn {
+  background: none;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  border-radius: 4px;
+  padding: 3px 10px;
+}
+
+.edit-btn:hover {
+  background: var(--blue-light);
+}
+
+/* Forms (sign in and edit) */
 fieldset {
   border: 0;
   margin: 0;
@@ -205,53 +275,57 @@ fieldset {
 .editor {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.signin {
-  max-width: 420px;
-  margin-top: 16px;
-}
-
-.editor {
   gap: 8px;
+}
+
+.editor legend {
+  font-weight: bold;
+  color: var(--blue);
+  margin-bottom: 4px;
 }
 
 .signin label,
 .editor label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 12px;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--gray);
 }
 
 .signin input,
 .editor input,
 .editor select {
   font: inherit;
-  color: var(--ink);
-  background: var(--card);
-  border: 1px solid #cfc6b8;
-  border-radius: 2px;
-  padding: 7px 8px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 8px;
 }
 
 .signin button,
 .editor button {
   align-self: flex-start;
-  margin-top: 4px;
-  background: var(--ink);
-  color: var(--paper);
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  padding: 7px 14px;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 7px 16px;
+}
+
+.signin button:hover,
+.editor button:hover {
+  background: #001a80;
 }
 
 .editor .cancel {
   background: none;
-  color: var(--muted);
-  border-color: transparent;
+  color: var(--gray);
+}
+
+.editor .cancel:hover {
+  background: none;
+  color: var(--text);
 }
 
 .row {
@@ -259,25 +333,39 @@ fieldset {
   gap: 8px;
 }
 
+/* Sign in page */
+.signin-box {
+  max-width: 360px;
+  margin-top: 80px;
+  background: white;
+  border: 1px solid var(--line);
+  border-top: 6px solid var(--blue);
+  border-radius: 6px;
+  padding: 20px 24px 24px;
+}
+
+.signin-box h1 {
+  margin: 0;
+  color: var(--blue);
+}
+
+.signin-box h1 + p {
+  margin: 0 0 8px;
+  color: var(--orange);
+  font-weight: bold;
+}
+
 input:focus,
 select:focus,
 button:focus-visible {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--orange);
   outline-offset: 1px;
 }
 
+/* Phones: stack the columns */
 @media (max-width: 760px) {
-  .page {
-    padding: 12px 10px 40px;
-  }
-
-  .sheet {
-    padding: 16px 12px 18px;
-  }
-
-  .top h1,
-  .sheet > h1 {
-    font-size: 28px;
+  .topbar {
+    padding: 12px 16px;
   }
 
   .board {
