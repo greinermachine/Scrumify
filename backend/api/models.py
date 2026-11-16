@@ -19,3 +19,22 @@ class Chore(models.Model):
 
     def __str__(self):
         return self.description
+
+
+class Freeze(models.Model):
+    # A user's routine freeze, while it is active late chores are paused instead of overdue
+    # Starting a freeze pushes unfinished chores' due dates back by the length of the freeze
+    # Each user has at most one freeze, an expired one is replaced by the next
+    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="freeze")
+    start_date = models.DateField()
+    end_date = models.DateField()
+    # The chores whose due dates this freeze pushed back, so ending early can move them forward again
+    shifted_chores = models.ManyToManyField(Chore, blank=True, related_name="frozen_by")
+
+    @property
+    def days(self):
+        # Both dates are included, so a freeze from Monday to Monday is 1 day
+        return (self.end_date - self.start_date).days + 1
+
+    def __str__(self):
+        return f"{self.owner} frozen {self.start_date} to {self.end_date}"
