@@ -184,6 +184,15 @@ button:disabled {
   color: var(--blue);
 }
 
+.score p { margin: 0; }
+
+.score-detail {
+  margin-top: 2px;
+  color: var(--gray);
+  font-size: 13px;
+  font-weight: normal;
+}
+
 /* Board with a column for each status */
 .board {
   display: grid;
