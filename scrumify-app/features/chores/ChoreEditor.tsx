@@ -1,11 +1,11 @@
-// Displays the existing edit form for a chore's description, deadline, status, and points
+// Form for adding or editing a chore
 "use client";
 
 import { useState, type FormEvent } from "react";
 import type { Chore, ChoreForm } from "./types";
 
 type ChoreEditorProps = {
-  chore: Chore;
+  chore?: Chore;
   saving: boolean;
   onSave: (form: ChoreForm) => Promise<void>;
   onCancel: () => void;
@@ -14,10 +14,11 @@ type ChoreEditorProps = {
 export default function ChoreEditor({ chore, saving, onSave, onCancel }: ChoreEditorProps) {
   // Keep edits separate from the saved chore until DJANGO confirms the update
   const [form, setForm] = useState<ChoreForm>({
-    description: chore.description,
-    due_date: chore.due_date,
-    status: chore.status,
-    points: chore.points,
+    description: chore?.description ?? "",
+    due_date: chore?.due_date ?? "",
+    due_time: chore?.due_time?.slice(0, 5) ?? "12:00",
+    status: chore?.status ?? "todo",
+    points: chore?.points ?? 0,
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -28,11 +29,16 @@ export default function ChoreEditor({ chore, saving, onSave, onCancel }: ChoreEd
   return (
     <form className="editor" onSubmit={submit}>
       <fieldset disabled={saving} className="editor">
-        <legend>Edit chore</legend>
+        <legend>{chore ? "Edit chore" : "Add chore"}</legend>
         <label>
           Description
-          <input required value={form.description}
+          <input required maxLength={255} value={form.description}
             onChange={(event) => setForm({ ...form, description: event.target.value })} />
+        </label>
+        <label>
+          Due time
+          <input type="time" required value={form.due_time}
+            onChange={(event) => setForm({ ...form, due_time: event.target.value })} />
         </label>
         <label>
           Due date

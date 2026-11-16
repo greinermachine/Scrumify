@@ -7,6 +7,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 type ChoreCardProps = {
   chore: Chore;
   onEdit: () => void;
+  onDelete: () => void;
   saving: boolean;
   today: string;
   completingId: number | null;
@@ -20,7 +21,7 @@ function formatDue(iso: string, today: string) {
   return label;
 }
 
-export default function ChoreCard({ chore, onEdit, saving, today, completingId, onComplete }: ChoreCardProps) {
+export default function ChoreCard({ chore, onEdit, onDelete, saving, today, completingId, onComplete }: ChoreCardProps) {
   const overdue = getChoreState(chore, today) === "Overdue";
 
   return (
@@ -45,9 +46,14 @@ export default function ChoreCard({ chore, onEdit, saving, today, completingId, 
             {completingId === chore.id ? "Saving" : "Mark complete"}
           </button>
         ) : <span />}
-        <button className="edit-btn" type="button" onClick={onEdit} disabled={saving}>
-          Edit
-        </button>
+        <div className="chore-controls">
+          <button className="edit-btn" type="button" onClick={onEdit} disabled={saving} aria-label={`Edit ${chore.description}`}>
+            Edit
+          </button>
+          <button className="delete-btn" type="button" onClick={onDelete} disabled={saving} aria-label={`Delete ${chore.description}`}>
+            Delete
+          </button>
+        </div>
       </div>
     </li>
   );
