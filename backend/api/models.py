@@ -19,3 +19,20 @@ class Chore(models.Model):
 
     def __str__(self):
         return self.description
+
+class Reminder(models.Model):
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="reminders",
+    )
+    chore = models.OneToOneField(
+        Chore,
+        on_delete=models.CASCADE,
+        related_name="reminder",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Reminder for {self.chore}"
