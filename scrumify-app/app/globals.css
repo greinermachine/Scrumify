@@ -412,3 +412,94 @@ button:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+.reminder-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.reminder-popup {
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow: hidden;
+  background: white;
+  color: #222;
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: reminder-popup-appear 0.2s ease-out;
+}
+
+.reminder-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.reminder-popup-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.reminder-popup-header p {
+  margin: 5px 0 0;
+  color: #6b7280;
+}
+
+.reminder-popup-header button {
+  border: none;
+  background: transparent;
+  font-size: 28px;
+  cursor: pointer;
+  color: #555;
+}
+
+.reminder-popup-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+  max-height: 55vh;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #f5f3ff;
+  border-radius: 12px;
+}
+
+.reminder-item h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.reminder-item p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.reminder-item-icon {
+  font-size: 24px;
+}
+
+@keyframes reminder-popup-appear {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

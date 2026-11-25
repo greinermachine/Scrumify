@@ -7,6 +7,8 @@ import SignInForm from "./SignInForm";
 import { useState } from "react";
 import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
+import { useReminders } from "../reminders/useReminders";
+import ReminderPopup from "../reminders/ReminderPopup";
 import { useToday } from "./useToday";
 import type { Chore, ChoreForm } from "./types";
 
@@ -28,7 +30,10 @@ export default function ChoresView() {
 function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   // The useChores hook handles the data and requests, this component handles the visible part
   const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const { reminders, loading: remindersLoading, error: remindersError,} = useReminders(token, onSignOut);
+
+const [showReminderPopup, setShowReminderPopup] = useState(true);
+const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const today = useToday();
   const earned = chores
@@ -46,6 +51,13 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
 
   return (
     <div className="page">
+      {!loading && !remindersLoading && showReminderPopup && (
+        <ReminderPopup
+        reminders={reminders}
+        chores={chores}
+        onClose={() => setShowReminderPopup(false)}
+        />
+      )}
       <header className="topbar">
         <div>
           <h1>Scrumify</h1>
