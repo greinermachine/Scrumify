@@ -3,12 +3,15 @@
 
 import ChoreCard from "./ChoreCard";
 import ChoreEditor from "./ChoreEditor";
+import FreezePanel from "./FreezePanel";
 import SignInForm from "./SignInForm";
 import { useState } from "react";
 import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
 import { useReminders } from "../reminders/useReminders";
 import ReminderPopup from "../reminders/ReminderPopup";
+import { useFreeze } from "./useFreeze";
+import { isFreezeActive } from "./freezeDates";
 import { useToday } from "./useToday";
 import type { Chore, ChoreForm } from "./types";
 
@@ -30,12 +33,13 @@ export default function ChoresView() {
 function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   // The useChores hook handles the data and requests, this component handles the visible part
   const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
-  const { reminders, loading: remindersLoading, error: remindersError,} = useReminders(token, onSignOut);
-
-const [showReminderPopup, setShowReminderPopup] = useState(true);
-const [editingId, setEditingId] = useState<number | null>(null);
+  const { reminders, loading: remindersLoading } = useReminders(token, onSignOut);
+  const [showReminderPopup, setShowReminderPopup] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const { freeze, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
   const today = useToday();
+  const frozen = isFreezeActive(freeze, today);
   const earned = chores
     .filter((chore) => chore.status === "done")
     .reduce((sum, chore) => sum + chore.points, 0);
@@ -50,17 +54,17 @@ const [editingId, setEditingId] = useState<number | null>(null);
   }
 
   return (
-    <div className="page">
+    <div className={frozen ? "page frozen" : "page"}>
       {!loading && !remindersLoading && showReminderPopup && (
         <ReminderPopup
-        reminders={reminders}
-        chores={chores}
-        onClose={() => setShowReminderPopup(false)}
+          reminders={reminders}
+          chores={chores}
+          onClose={() => setShowReminderPopup(false)}
         />
       )}
       <header className="topbar">
         <div>
-          <h1>Scrumify</h1>
+          <h1>Scrumify {frozen && <span className="frozen-pill">Frozen</span>}</h1>
           <p>Lifestyle management</p>
         </div>
         <div className="topbar-buttons">
@@ -74,6 +78,9 @@ const [editingId, setEditingId] = useState<number | null>(null);
       </header>
 
       <main className="sheet">
+        <FreezePanel freeze={freeze} active={frozen} today={today} saving={freezeSaving}
+          error={freezeError} onStart={startFreeze} onEnd={endFreeze} />
+
         <div className="dashboard-heading">
           <h2>Chores</h2>
           <button type="button" className="add-btn" disabled={saving || adding}
@@ -109,6 +116,7 @@ const [editingId, setEditingId] = useState<number | null>(null);
                       <span className="tag">{chore.due_date}</span>
                       <span className="tag">{(chore.due_time || "12:00").slice(0, 5)}</span>
                       <span className="tag">{chore.points} pts</span>
+                      {frozen && chore.due_date < today && <span className="tag paused-label">Paused</span>}
                       <span className={chore.status === "in_progress" ? "status in_progress" : "status"}>
                         {chore.status === "in_progress" ? "In progress" : "To do"}
                       </span>
@@ -145,7 +153,7 @@ const [editingId, setEditingId] = useState<number | null>(null);
                           </li>
                         ) : (
                           <ChoreCard key={chore.id} chore={chore} saving={saving}
-                            today={today} completingId={completingId} onComplete={completeChore}
+                            today={today} frozen={frozen} completingId={completingId} onComplete={completeChore}
                             onEdit={() => { setAdding(false); setEditingId(chore.id); clearSaveError(); }}
                             onDelete={() => {
                               if (window.confirm(`Delete "${chore.description}"?`)) void deleteChore(chore.id);
