@@ -10,6 +10,7 @@ import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
 import { useReminders } from "../reminders/useReminders";
 import ReminderPopup from "../reminders/ReminderPopup";
+import RewardCatalog from "../rewards/RewardCatalog";
 import { useFreeze } from "./useFreeze";
 import { isFreezeActive } from "./freezeDates";
 import { useToday } from "./useToday";
@@ -35,6 +36,7 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const { reminders, loading: remindersLoading } = useReminders(token, onSignOut);
   const [showReminderPopup, setShowReminderPopup] = useState(true);
+  const [showRewards, setShowRewards] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const { freeze, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
@@ -77,7 +79,16 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
         </div>
       </header>
 
-      <main className="sheet">
+      <nav className="sheet dashboard-nav" aria-label="Dashboard">
+        <button type="button" aria-pressed={!showRewards} onClick={() => setShowRewards(false)}>
+          Chores
+        </button>
+        <button type="button" aria-pressed={showRewards} onClick={() => setShowRewards(true)}>
+          Rewards
+        </button>
+      </nav>
+
+      <main className="sheet" hidden={showRewards}>
         <FreezePanel freeze={freeze} active={frozen} today={today} saving={freezeSaving}
           error={freezeError} onStart={startFreeze} onEnd={endFreeze} />
 
@@ -168,6 +179,11 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
           </>
         )}
       </main>
+      {showRewards && (
+        <main className="sheet">
+          <RewardCatalog />
+        </main>
+      )}
     </div>
   );
 }
