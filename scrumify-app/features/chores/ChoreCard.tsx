@@ -10,11 +10,12 @@ type ChoreCardProps = {
   saving: boolean;
   today: string;
   frozen: boolean;
+  penalized: boolean;
   completingId: number | null;
   onComplete: (choreId: number) => Promise<void>;
 };
 
-export default function ChoreCard({ chore, onEdit, onDelete, saving, today, frozen, completingId, onComplete }: ChoreCardProps) {
+export default function ChoreCard({ chore, onEdit, onDelete, saving, today, frozen, penalized, completingId, onComplete }: ChoreCardProps) {
   const state = getChoreState(chore, today, frozen);
   const overdue = state === "Overdue";
   const paused = state === "Frozen";
@@ -27,7 +28,9 @@ export default function ChoreCard({ chore, onEdit, onDelete, saving, today, froz
           {overdue ? "Late, " : paused ? "Paused, " : ""}
           {formatDate(chore.due_date, today)}
         </span>
-        <span>{chore.points} pts</span>
+        {penalized
+          ? <span className="late" title="Missed, so these points are taken away">-{chore.points} pts</span>
+          : <span>{chore.points} pts</span>}
       </p>
       <div className="actions">
         {chore.status !== "done" ? (
