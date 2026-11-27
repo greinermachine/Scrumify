@@ -1,7 +1,7 @@
 const REWARDS = [
   { name: "$5 coffee shop gift card", points: 50 },
   { name: "$10 grocery gift card", points: 100 },
-  { name: "Pick a movie", points: 10 },
+  { name: "$15 online gift card", points: 150 },
 ];
 
 export default function RewardCatalog() {
