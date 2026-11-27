@@ -1,8 +1,7 @@
 // Displays a chore's details, deadline state, and controls for editing or marking it complete
 import type { Chore } from "./types";
 import { getChoreState } from "./getChoreState";
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { formatDate } from "./formatDate";
 
 type ChoreCardProps = {
   chore: Chore;
@@ -10,27 +9,23 @@ type ChoreCardProps = {
   onDelete: () => void;
   saving: boolean;
   today: string;
+  frozen: boolean;
   completingId: number | null;
   onComplete: (choreId: number) => Promise<void>;
 };
 
-function formatDue(iso: string, today: string) {
-  const [year, month, day] = iso.split("-");
-  const label = `${MONTHS[Number(month) - 1]} ${Number(day)}`;
-  if (today && year !== today.slice(0, 4)) return `${label}, ${year}`;
-  return label;
-}
-
-export default function ChoreCard({ chore, onEdit, onDelete, saving, today, completingId, onComplete }: ChoreCardProps) {
-  const overdue = getChoreState(chore, today) === "Overdue";
+export default function ChoreCard({ chore, onEdit, onDelete, saving, today, frozen, completingId, onComplete }: ChoreCardProps) {
+  const state = getChoreState(chore, today, frozen);
+  const overdue = state === "Overdue";
+  const paused = state === "Frozen";
 
   return (
-    <li className={overdue ? "chore overdue" : "chore"}>
+    <li className={overdue ? "chore overdue" : paused ? "chore paused" : "chore"}>
       <h2>{chore.description}</h2>
       <p className="meta">
-        <span className={overdue ? "late" : undefined}>
-          {overdue ? "Late, " : ""}
-          {formatDue(chore.due_date, today)}
+        <span className={overdue ? "late" : paused ? "paused-label" : undefined}>
+          {overdue ? "Late, " : paused ? "Paused, " : ""}
+          {formatDate(chore.due_date, today)}
         </span>
         <span>{chore.points} pts</span>
       </p>

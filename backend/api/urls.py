@@ -4,6 +4,8 @@ from . import views
 
 urlpatterns = [
     path("login/", obtain_auth_token),
+    path("freeze/", views.freeze, name="freeze"),
+    path("freeze/end/", views.end_freeze, name="freeze-end"),
     path("chores/", views.chore_list),
     path("chores/<int:chore_id>/", views.chore_detail),
     path("chores/", views.chore_list, name="chore-create"),

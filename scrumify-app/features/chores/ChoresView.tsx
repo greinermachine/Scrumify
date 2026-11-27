@@ -3,10 +3,13 @@
 
 import ChoreCard from "./ChoreCard";
 import ChoreEditor from "./ChoreEditor";
+import FreezePanel from "./FreezePanel";
 import SignInForm from "./SignInForm";
 import { useState } from "react";
 import { useAuth } from "./useAuth";
 import { useChores } from "./useChores";
+import { useFreeze } from "./useFreeze";
+import { isFreezeActive } from "./freezeDates";
 import { useToday } from "./useToday";
 import type { Chore, ChoreForm } from "./types";
 
@@ -30,7 +33,9 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const { freeze, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
   const today = useToday();
+  const frozen = isFreezeActive(freeze, today);
   const earned = chores
     .filter((chore) => chore.status === "done")
     .reduce((sum, chore) => sum + chore.points, 0);
@@ -45,10 +50,10 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   }
 
   return (
-    <div className="page">
+    <div className={frozen ? "page frozen" : "page"}>
       <header className="topbar">
         <div>
-          <h1>Scrumify</h1>
+          <h1>Scrumify {frozen && <span className="frozen-pill">Frozen</span>}</h1>
           <p>Lifestyle management</p>
         </div>
         <div className="topbar-buttons">
@@ -62,6 +67,9 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
       </header>
 
       <main className="sheet">
+        <FreezePanel freeze={freeze} active={frozen} today={today} saving={freezeSaving}
+          error={freezeError} onStart={startFreeze} onEnd={endFreeze} />
+
         <div className="dashboard-heading">
           <h2>Chores</h2>
           <button type="button" className="add-btn" disabled={saving || adding}
@@ -97,6 +105,7 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
                       <span className="tag">{chore.due_date}</span>
                       <span className="tag">{(chore.due_time || "12:00").slice(0, 5)}</span>
                       <span className="tag">{chore.points} pts</span>
+                      {frozen && chore.due_date < today && <span className="tag paused-label">Paused</span>}
                       <span className={chore.status === "in_progress" ? "status in_progress" : "status"}>
                         {chore.status === "in_progress" ? "In progress" : "To do"}
                       </span>
@@ -133,7 +142,7 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
                           </li>
                         ) : (
                           <ChoreCard key={chore.id} chore={chore} saving={saving}
-                            today={today} completingId={completingId} onComplete={completeChore}
+                            today={today} frozen={frozen} completingId={completingId} onComplete={completeChore}
                             onEdit={() => { setAdding(false); setEditingId(chore.id); clearSaveError(); }}
                             onDelete={() => {
                               if (window.confirm(`Delete "${chore.description}"?`)) void deleteChore(chore.id);
