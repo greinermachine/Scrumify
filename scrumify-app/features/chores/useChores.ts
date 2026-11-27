@@ -147,5 +147,5 @@ export function useChores(token: string, onUnauthorized: () => void) {
 
   function clearSaveError() { setSaveError(""); }
 
-  return { chores, pointsBalance, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError };
+  return { chores, pointsBalance, loading, error, refreshChores, refreshVersion, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError };
 }

@@ -44,6 +44,20 @@ class ChorePointAward(models.Model):
     points = models.IntegerField()
 
 
+class RewardRedemption(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    request_id = models.UUIDField()
+    reward_id = models.CharField(max_length=32)
+    reward_name = models.CharField(max_length=255)
+    points = models.PositiveIntegerField()
+    redeemed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "request_id"], name="unique_redemption_request"),
+        ]
+
+
 class Reminder(models.Model):
     owner = models.ForeignKey(
         User,

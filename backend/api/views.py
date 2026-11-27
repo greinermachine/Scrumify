@@ -1,15 +1,17 @@
 import datetime
 
-from django.db import transaction
-from django.db.models import Sum
+from django.db import IntegrityError, transaction
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Chore, ChorePointAward, Freeze, Reminder
+from .models import Chore, Freeze, Reminder, RewardRedemption
+from .rewards import REWARDS, points_balance
 from .serializers import (
     ChoreSerializer,
     EndFreezeSerializer,
     FreezeSerializer,
+    RedeemRewardSerializer,
     ReminderSerializer,
+    RewardRedemptionSerializer,
 )
 
 
@@ -23,13 +25,59 @@ def chore_list(request):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
-    serializer = ChoreSerializer(chores, many=True)
-    points_balance = ChorePointAward.objects.filter(owner=request.user).aggregate(
-        balance=Sum("points", default=0),
-    )["balance"]
-    return Response({"chores": serializer.data, "points_balance": points_balance})
-    
-    
+    with transaction.atomic():
+        data = ChoreSerializer(chores, many=True).data
+        balance = points_balance(request.user)
+    return Response({"chores": data, "points_balance": balance})
+
+
+@api_view(["GET", "POST"])
+def rewards(request):
+    redemptions = RewardRedemption.objects.filter(owner=request.user)
+    if request.method == "GET":
+        with transaction.atomic():
+            history = RewardRedemptionSerializer(redemptions.order_by("-id"), many=True).data
+            balance = points_balance(request.user)
+        return Response({
+            "rewards": [{"id": key, **reward} for key, reward in REWARDS.items()],
+            "redemptions": history,
+            "points_balance": balance,
+        })
+
+    serializer = RedeemRewardSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    reward_id = serializer.validated_data["reward_id"]
+    request_id = serializer.validated_data["request_id"]
+    reward = REWARDS[reward_id]
+
+    response_status = 201
+    try:
+        with transaction.atomic():
+            # Insert first to acquire SQLite's write lock before checking the balance.
+            redemption = redemptions.create(
+                owner=request.user, request_id=request_id, reward_id=reward_id,
+                reward_name=reward["name"], points=reward["points"],
+            )
+            balance = points_balance(request.user)
+            if balance < 0:
+                transaction.set_rollback(True)
+                return Response({"error": "You do not have enough points for this reward."}, status=409)
+    except IntegrityError:
+        redemption = redemptions.filter(request_id=request_id).first()
+        if redemption is None:
+            raise
+        if redemption.reward_id != reward_id:
+            return Response({"error": "This request was already used for a different reward."}, status=409)
+        with transaction.atomic():
+            balance = points_balance(request.user)
+        response_status = 200
+
+    return Response({
+        "redemption": RewardRedemptionSerializer(redemption).data,
+        "points_balance": balance,
+    }, status=response_status)
+
+
 @api_view(["GET", "POST"])
 def reminder_list(request):
     reminders = Reminder.objects.filter(

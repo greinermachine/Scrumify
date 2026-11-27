@@ -1,4 +1,5 @@
 import datetime
+from uuid import uuid4
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -224,6 +225,72 @@ class ChoreApiTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         saved = Chore.objects.get(id=response.json()["id"])
         self.assertEqual(saved.owner, self.alice)
+
+
+class RewardRedemptionTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.alice = User.objects.create_user(username="alice")
+        cls.bob = User.objects.create_user(username="bob")
+        Chore.objects.create(
+            owner=cls.alice,
+            description="Wash dishes",
+            due_date=datetime.date(2026, 11, 27),
+            status="done",
+            points=150,
+        )
+
+    def setUp(self):
+        self.client.force_authenticate(user=self.alice)
+        self.url = reverse("rewards")
+
+    def redeem(self, reward_id, request_id=None, **extra):
+        return self.client.post(self.url, {
+            "reward_id": reward_id,
+            "request_id": str(request_id or uuid4()),
+            **extra,
+        }, format="json")
+
+    def test_redeeming_records_the_catalog_cost_and_updates_both_balances(self):
+        state = self.client.get(self.url).json()
+        self.assertEqual(state["points_balance"], 150)
+        self.assertEqual(state["redemptions"], [])
+        self.assertIn({"id": "coffee", "name": "$5 coffee shop gift card", "points": 50}, state["rewards"])
+
+        first = self.redeem("coffee", points=1)
+        second = self.redeem("grocery")
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 201)
+        self.assertEqual(second.json()["points_balance"], 0)
+        history = self.client.get(self.url).json()["redemptions"]
+        self.assertEqual([(entry["reward_name"], entry["points"]) for entry in history], [
+            ("$10 grocery gift card", 100),
+            ("$5 coffee shop gift card", 50),
+        ])
+        self.assertTrue(all(entry["redeemed_at"] for entry in history))
+        self.assertEqual(self.client.get(reverse("chore-list")).json()["points_balance"], 0)
+
+    def test_an_insufficient_balance_leaves_no_receipt_and_history_is_private(self):
+        self.assertEqual(self.redeem("online").status_code, 201)
+        self.assertEqual(self.redeem("coffee").status_code, 409)
+        self.assertEqual(len(self.client.get(self.url).json()["redemptions"]), 1)
+
+        self.client.force_authenticate(user=self.bob)
+        self.assertEqual(self.redeem("coffee", owner=self.alice.pk).status_code, 409)
+        self.assertEqual(self.redeem("unknown").status_code, 400)
+        self.assertEqual(self.client.get(self.url).json()["redemptions"], [])
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(self.url).status_code, 401)
+
+    def test_retry_returns_the_original_receipt_without_spending_twice(self):
+        request_id = uuid4()
+        first = self.redeem("online", request_id)
+        duplicate = self.redeem("online", request_id)
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertEqual(first.json(), duplicate.json())
+        self.assertEqual(self.redeem("coffee", request_id).status_code, 409)
+        self.assertEqual(len(self.client.get(self.url).json()["redemptions"]), 1)
 
 
 class ChoreDeleteTests(APITestCase):
