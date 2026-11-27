@@ -5,7 +5,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 from django.urls import reverse
 
-from .models import Chore
+from .models import Chore, Freeze
 
 
 class ChoreTests(TestCase):
@@ -229,3 +229,152 @@ class ChoreDeleteTests(APITestCase):
     def test_missing_chore_returns_404(self):
         url = reverse("chore-delete", args=[self.chore.pk + 1])
         self.assertEqual(self.client.delete(url).status_code, 404)
+
+
+class FreezeApiTests(APITestCase):
+    def setUp(self):
+        self.alice = User.objects.create_user(username="alice", password="alice-password")
+        self.bob = User.objects.create_user(username="bob", password="bob-password")
+        self.client.force_authenticate(user=self.alice)
+        self.url = reverse("freeze")
+        self.end_url = reverse("freeze-end")
+
+    def make_chore(self, description, due, owner=None, status="todo"):
+        return Chore.objects.create(
+            description=description, due_date=due, owner=owner or self.alice, status=status
+        )
+
+    def start(self, start="2026-11-16", end="2026-11-22"):
+        return self.client.post(self.url, {"start_date": start, "end_date": end}, format="json")
+
+    def due(self, chore):
+        chore.refresh_from_db()
+        return chore.due_date
+
+    def test_no_freeze_by_default(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"freeze": None})
+
+    def test_start_freeze(self):
+        self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        response = self.start()
+        self.assertEqual(response.status_code, 201)
+        expected = {"start_date": "2026-11-16", "end_date": "2026-11-22", "days": 7, "shifted_count": 1}
+        self.assertEqual(response.json(), expected)
+        self.assertEqual(self.client.get(self.url).json(), {"freeze": expected})
+
+    def test_start_pushes_unfinished_due_dates_back(self):
+        during = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        first_day = self.make_chore("Dishes", datetime.date(2026, 11, 16))
+        after = self.make_chore("Laundry", datetime.date(2026, 12, 1))
+        self.start()
+        # A 7 day freeze moves each due date 7 days later
+        self.assertEqual(self.due(during), datetime.date(2026, 11, 27))
+        self.assertEqual(self.due(first_day), datetime.date(2026, 11, 23))
+        self.assertEqual(self.due(after), datetime.date(2026, 12, 8))
+
+    def test_start_leaves_done_and_already_late_chores_alone(self):
+        done = self.make_chore("Trash", datetime.date(2026, 11, 20), status="done")
+        late = self.make_chore("Mow", datetime.date(2026, 11, 10))
+        self.start()
+        self.assertEqual(self.due(done), datetime.date(2026, 11, 20))
+        self.assertEqual(self.due(late), datetime.date(2026, 11, 10))
+
+    def test_start_leaves_other_users_chores_alone(self):
+        bobs = self.make_chore("Feed the cat", datetime.date(2026, 11, 20), owner=self.bob)
+        self.start()
+        self.assertEqual(self.due(bobs), datetime.date(2026, 11, 20))
+
+    def test_one_day_freeze_pushes_back_one_day(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 16))
+        response = self.start(end="2026-11-16")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 17))
+
+    def test_end_before_start_is_rejected(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        response = self.start(end="2026-11-15")
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Freeze.objects.exists())
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 20))
+
+    def test_missing_dates_are_rejected(self):
+        response = self.client.post(self.url, {}, format="json")
+        self.assertEqual(response.status_code, 400)
+
+    def test_cannot_start_while_frozen(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        self.start()
+        response = self.start(start="2026-11-18", end="2026-11-25")
+        self.assertEqual(response.status_code, 400)
+        # The first freeze is untouched and the chore was only pushed back once
+        self.assertEqual(Freeze.objects.get(owner=self.alice).end_date, datetime.date(2026, 11, 22))
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 27))
+
+    def test_expired_freeze_is_replaced_and_keeps_its_shift(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 3))
+        self.start(start="2026-11-01", end="2026-11-02")
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 5))
+        response = self.start(start="2026-11-16", end="2026-11-17")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Freeze.objects.filter(owner=self.alice).count(), 1)
+        # Already late by the second freeze, so only the first freeze moved it
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 5))
+
+    def test_end_early_gives_back_unused_days(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        self.start()  # Nov 16 to 22, pushed to Nov 27
+        # Ending on Nov 19 means Nov 16, 17, and 18 were used
+        response = self.client.post(self.end_url, {"today": "2026-11-19"}, format="json")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Freeze.objects.filter(owner=self.alice).exists())
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 23))
+
+    def test_end_on_start_day_undoes_the_freeze(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        self.start()
+        self.client.post(self.end_url, {"today": "2026-11-16"}, format="json")
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 20))
+
+    def test_end_after_freeze_finished_keeps_full_shift(self):
+        chore = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        self.start()
+        self.client.post(self.end_url, {"today": "2026-11-30"}, format="json")
+        self.assertEqual(self.due(chore), datetime.date(2026, 11, 27))
+
+    def test_end_early_skips_chores_added_or_rescheduled_during_freeze(self):
+        moved = self.make_chore("Vacuum", datetime.date(2026, 11, 20))
+        self.start()
+        added = self.make_chore("New chore", datetime.date(2026, 11, 25))
+        # The user picks a new due date by hand during the freeze
+        self.client.patch(f"/api/chores/{moved.id}/", {"due_date": "2026-11-28"}, format="json")
+        self.client.post(self.end_url, {"today": "2026-11-17"}, format="json")
+        self.assertEqual(self.due(moved), datetime.date(2026, 11, 28))
+        self.assertEqual(self.due(added), datetime.date(2026, 11, 25))
+
+    def test_end_needs_today(self):
+        self.start()
+        response = self.client.post(self.end_url, {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(Freeze.objects.filter(owner=self.alice).exists())
+
+    def test_ending_without_a_freeze_is_fine(self):
+        response = self.client.post(self.end_url, {"today": "2026-11-16"}, format="json")
+        self.assertEqual(response.status_code, 204)
+
+    def test_freeze_only_affects_its_owner(self):
+        Freeze.objects.create(
+            owner=self.bob, start_date=datetime.date(2026, 11, 16), end_date=datetime.date(2026, 11, 22)
+        )
+        # Alice can't see Bob's freeze
+        self.assertEqual(self.client.get(self.url).json(), {"freeze": None})
+        # Alice ending her freeze doesn't end Bob's
+        self.client.post(self.end_url, {"today": "2026-11-16"}, format="json")
+        self.assertTrue(Freeze.objects.filter(owner=self.bob).exists())
+
+    def test_must_be_signed_in(self):
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(self.url).status_code, 401)
+        self.assertEqual(self.client.post(self.url, {}, format="json").status_code, 401)
+        self.assertEqual(self.client.post(self.end_url, {}, format="json").status_code, 401)
