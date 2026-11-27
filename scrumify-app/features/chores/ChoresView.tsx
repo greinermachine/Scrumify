@@ -32,7 +32,7 @@ export default function ChoresView() {
 
 function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   // The useChores hook handles the data and requests, this component handles the visible part
-  const { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
+  const { chores, pointsBalance, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const { reminders, loading: remindersLoading } = useReminders(token, onSignOut);
   const [showReminderPopup, setShowReminderPopup] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -40,9 +40,6 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
   const { freeze, freezeSaving, freezeError, startFreeze, endFreeze } = useFreeze(token, onSignOut, refreshChores);
   const today = useToday();
   const frozen = isFreezeActive(freeze, today);
-  const earned = chores
-    .filter((chore) => chore.status === "done")
-    .reduce((sum, chore) => sum + chore.points, 0);
 
   // filters out the completed chores, and sorts them by date chronologically
   const incompleteChores = chores
@@ -99,6 +96,9 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
         {loading && <p>Loading chores...</p>}
         {error && <p className="note" role="alert">{error}</p>}
         {saveError && <p className="note" role="alert">{saveError}</p>}
+        {!error && pointsBalance !== null && (
+          <p className="score" role="status">Points balance: {pointsBalance}</p>
+        )}
 
         {!loading && !error && chores.length === 0 && <p>No chores saved yet. Add one to get started.</p>}
 
@@ -125,8 +125,6 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
                 </ul>
               )}
             </section>
-
-            <p className="score">Points earned: {earned}</p>
 
             {/* One column per status, each chore goes in the column that matches its status */}
             <div className="board" aria-label="Current chores">

@@ -1,9 +1,10 @@
 import datetime
 
 from django.db import transaction
+from django.db.models import Sum
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Chore, Freeze, Reminder
+from .models import Chore, ChorePointAward, Freeze, Reminder
 from .serializers import (
     ChoreSerializer,
     EndFreezeSerializer,
@@ -23,7 +24,10 @@ def chore_list(request):
         return Response(serializer.errors, status=400)
 
     serializer = ChoreSerializer(chores, many=True)
-    return Response({"chores": serializer.data})
+    points_balance = ChorePointAward.objects.filter(owner=request.user).aggregate(
+        balance=Sum("points", default=0),
+    )["balance"]
+    return Response({"chores": serializer.data, "points_balance": points_balance})
     
     
 @api_view(["GET", "POST"])
