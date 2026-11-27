@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.db import models
+from django.db import models, router, transaction
 import datetime
 
 
@@ -17,8 +17,32 @@ class Chore(models.Model):
     points = models.IntegerField(default=0)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    def save(self, *, force_insert=False, force_update=False, using=None, update_fields=None):
+        using = using or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            super().save(
+                force_insert=force_insert, force_update=force_update,
+                using=using, update_fields=update_fields,
+            )
+            # Use the stored values because a partial save can leave other fields untouched.
+            completed = Chore.objects.using(using).filter(pk=self.pk, status="done").values(
+                "owner_id", "points"
+            ).first()
+            if completed is not None:
+                ChorePointAward.objects.using(using).get_or_create(
+                    chore_id=self.pk, defaults=completed,
+                )
+
     def __str__(self):
         return self.description
+
+
+class ChorePointAward(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    # Keep earned points in the balance even if the completed chore is deleted.
+    chore = models.OneToOneField(Chore, on_delete=models.SET_NULL, null=True)
+    points = models.IntegerField()
+
 
 class Reminder(models.Model):
     owner = models.ForeignKey(

@@ -86,6 +86,51 @@ class ChoreApiTests(APITestCase):
         self.assertEqual(len(response.json()["chores"]), 1)
         self.assertEqual(response.json()["chores"][0]["description"], "Mow the lawn")
 
+    def test_completing_chores_adds_configured_points_to_the_owners_balance(self):
+        url = reverse("chore-detail", args=[self.chore.pk])
+        self.assertEqual(self.client.get(reverse("chore-list")).json()["points_balance"], 0)
+
+        response = self.client.patch(url, {"status": "done"}, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "done")
+        self.assertEqual(self.client.get(reverse("chore-list")).json()["points_balance"], 2)
+
+        response = self.client.post(reverse("chore-create"), {
+            "description": "Water plants",
+            "due_date": "2026-10-26",
+            "points": 5,
+        }, format="json")
+        self.assertEqual(response.status_code, 201)
+        second_url = reverse("chore-detail", args=[response.json()["id"]])
+        response = self.client.put(second_url, {
+            "description": "Water plants",
+            "due_date": "2026-10-26",
+            "status": "done",
+            "points": 6,
+        }, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get(reverse("chore-list")).json()["points_balance"], 8)
+
+        self.client.force_authenticate(user=self.bob)
+        self.assertEqual(self.client.get(reverse("chore-list")).json()["points_balance"], 0)
+
+    def test_award_survives_retries_edits_reopening_and_deletion(self):
+        url = reverse("chore-detail", args=[self.chore.pk])
+        list_url = reverse("chore-list")
+        for changes in (
+            {"status": "done"},
+            {"status": "done"},
+            {"points": 10},
+            {"status": "todo"},
+            {"status": "done"},
+        ):
+            with self.subTest(changes=changes):
+                self.assertEqual(self.client.patch(url, changes, format="json").status_code, 200)
+                self.assertEqual(self.client.get(list_url).json()["points_balance"], 2)
+
+        self.assertEqual(self.client.delete(url).status_code, 204)
+        self.assertEqual(self.client.get(list_url).json(), {"chores": [], "points_balance": 2})
+
     def test_edit_chore(self):
         new_values = {
             "description": "Mow the front lawn",
