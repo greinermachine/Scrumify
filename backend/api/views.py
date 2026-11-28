@@ -5,6 +5,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Chore, Freeze, Reminder, RewardRedemption
 from .rewards import REWARDS, points_balance
+from django.db import transaction
+from django.db.models import Sum
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import Chore, ChorePointAward, Freeze, Reminder
 from .serializers import (
     ChoreSerializer,
     EndFreezeSerializer,
@@ -78,6 +83,13 @@ def rewards(request):
     }, status=response_status)
 
 
+    serializer = ChoreSerializer(chores, many=True)
+    points_balance = ChorePointAward.objects.filter(owner=request.user).aggregate(
+        balance=Sum("points", default=0),
+    )["balance"]
+    return Response({"chores": serializer.data, "points_balance": points_balance})
+    
+    
 @api_view(["GET", "POST"])
 def reminder_list(request):
     reminders = Reminder.objects.filter(

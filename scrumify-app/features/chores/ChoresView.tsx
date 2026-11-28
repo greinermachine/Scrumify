@@ -33,7 +33,7 @@ export default function ChoresView() {
 
 function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   // The useChores hook handles the data and requests, this component handles the visible part
-  const { chores, pointsBalance, loading, error, refreshChores, refreshVersion, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
+  const { chores, pointsBalance, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError } = useChores(token, onSignOut);
   const { reminders, loading: remindersLoading } = useReminders(token, onSignOut);
   const [showReminderPopup, setShowReminderPopup] = useState(true);
   const [showRewards, setShowRewards] = useState(false);
