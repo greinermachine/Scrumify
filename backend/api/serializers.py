@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Chore, Freeze, Reminder
+from .models import Chore, Freeze, Reminder, RewardRedemption
+from .rewards import REWARDS
 
 class ChoreSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
@@ -13,6 +14,18 @@ class ChoreSerializer(serializers.ModelSerializer):
         model = Chore
         fields = ["id", "description", "due_date", "due_time", "status", "points"]
         read_only_fields = ["id"]
+
+
+class RedeemRewardSerializer(serializers.Serializer):
+    reward_id = serializers.ChoiceField(choices=tuple(REWARDS))
+    request_id = serializers.UUIDField()
+
+
+class RewardRedemptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RewardRedemption
+        fields = ["id", "request_id", "reward_id", "reward_name", "points", "redeemed_at"]
+        read_only_fields = fields
 
 
 class ReminderSerializer(serializers.ModelSerializer):

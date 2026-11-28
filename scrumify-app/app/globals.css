@@ -174,11 +174,12 @@ button:disabled {
   border-top: 1px solid var(--line);
 }
 
-.reward-catalog li {
-  justify-content: space-between;
+.redemption-history {
+  margin-top: 16px;
 }
 
-.upcoming-name {
+.upcoming-name,
+.reward-name {
   font-weight: bold;
   margin-right: auto;
 }

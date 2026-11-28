@@ -177,11 +177,10 @@ function SignedInChores({ token, onSignOut }: { token: string; onSignOut: () => 
           </>
         )}
       </main>
-      {showRewards && (
-        <main className="sheet">
-          <RewardCatalog />
-        </main>
-      )}
+      <main className="sheet" hidden={!showRewards}>
+        <RewardCatalog token={token} active={showRewards} onUnauthorized={onSignOut}
+          refresh={refreshChores} refreshVersion={refreshVersion} />
+      </main>
     </div>
   );
 }
