@@ -2,6 +2,13 @@ from rest_framework import serializers
 from .models import Chore, Freeze, Reminder
 
 class ChoreSerializer(serializers.ModelSerializer):
+    def update(self, instance, validated_data):
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        # A status-only PATCH must preserve points saved by another request.
+        instance.save(update_fields=validated_data)
+        return instance
+
     class Meta:
         model = Chore
         fields = ["id", "description", "due_date", "due_time", "status", "points"]

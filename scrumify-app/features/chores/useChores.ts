@@ -8,6 +8,7 @@ export function useChores(token: string, onUnauthorized: () => void) {
   // The useState hook remembers data between renders, each pair contains the current value
   // The setter, setChores(newList), updates chores and tells React to redraw the page
   const [chores, setChores] = useState<Chore[]>([]); // Holds the list of chores, initially empty
+  const [pointsBalance, setPointsBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true); // Controls whether the initial loading message is shown
   const [refreshVersion, setRefreshVersion] = useState(0); // Triggers another load when changed
   const [error, setError] = useState("");
@@ -42,10 +43,11 @@ export function useChores(token: string, onUnauthorized: () => void) {
         if (!active || requestController.signal.aborted) return;
         if (response.status === 401) { onUnauthorized(); return; }
         if (!response.ok) throw new Error();
-        const data = await response.json();
+        const data: { chores: Chore[]; points_balance: number } = await response.json();
         // Ignore results if this effect has been cleaned up or the request was cancelled
         if (!active || requestController.signal.aborted) return;
         setChores(data.chores);
+        setPointsBalance(data.points_balance);
         setError("");
       } catch (error) {
         // Cancelling a request is expected when refreshing, so don't display it as an error
@@ -145,5 +147,5 @@ export function useChores(token: string, onUnauthorized: () => void) {
 
   function clearSaveError() { setSaveError(""); }
 
-  return { chores, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError };
+  return { chores, pointsBalance, loading, error, refreshChores, addChore, saveChore, deleteChore, completeChore, completingId, saving, saveError, clearSaveError };
 }
